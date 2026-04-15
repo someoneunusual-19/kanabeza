@@ -24,7 +24,8 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.29.0'
+          # Flutter 3.41.x includes Dart 3.11.x, fulfilling the >3.9.0 requirement
+          flutter-version: '3.41.4'
           channel: 'stable'
           cache: true
 
@@ -32,13 +33,15 @@ jobs:
         run: flutter pub get
 
       - name: Generate Hive adapters
-        run: flutter pub run build_runner build --delete-conflicting-outputs
+        # Using 'dart run' as the modern replacement for 'flutter pub run'
+        run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Build Release APK (Single Universal APK)
         run: flutter build apk --release
 
       - name: Rename APK with version & date
         run: |
+          # Extract version from pubspec.yaml and format date
           VERSION=$(yq '.version' pubspec.yaml)
           DATE=$(date +'%Y%m%d')
           mv build/app/outputs/flutter-apk/app-release.apk \
@@ -54,4 +57,4 @@ jobs:
       - name: Build Complete
         run: |
           echo "🎉 Kanabeza APK built successfully!"
-          echo "📦 File: kanabeza-v$(yq '.version' pubspec.yaml)-$(date +'%Y%m%d').apk"
+          echo "📦 File check: $(ls build/app/outputs/flutter-apk/kanabeza-*.apk)"

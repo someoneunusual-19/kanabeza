@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "486258353737",
+    "project_id": "kanabeza-88d42",
+    "storage_bucket": "kanabeza-88d42.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:486258353737:android:3af456ca92602626458198",
+        "android_client_info": {
+          "package_name": "com.example.kanabeza"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "486258353737-khgp6kcsqbtgkje310793ccuj1ad4a82.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC5-ZD3uaKcV3WuPxxideOhCMkCA_Z08j0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "486258353737-khgp6kcsqbtgkje310793ccuj1ad4a82.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

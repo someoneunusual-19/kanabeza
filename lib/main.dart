@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'package:kanabeza/models/product.dart';
-import 'package:kanabeza/models/purchase.dart';
-import 'package:kanabeza/models/sale.dart';
-import 'package:kanabeza/screens/splash_screen.dart';
-import 'package:kanabeza/services/hive_service.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:kanabeza/models/app_user.dart';
+
+// Import your internal files
+import 'screens/login_screen.dart';
+import 'screens/main_wrapper.dart';
+import 'theme/app_theme.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Hive.initFlutter();
-
-  Hive.registerAdapter(ProductAdapter());
-  Hive.registerAdapter(PurchaseAdapter());
-  Hive.registerAdapter(SaleAdapter());
-
-  await HiveService.initBoxes();
-
+  // 2. Pass the options to initializeApp
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const KanabezaApp());
 }
 
@@ -25,65 +25,58 @@ class KanabezaApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Kanabeza',
+      title: 'Kanabeza Pro',
       debugShowCheckedModeBanner: false,
+      theme: AppTheme.darkTheme, // Uses your Shadcn-inspired dark theme
+      home: const AuthGate(),
+    );
+  }
+}
 
-      // Light Theme
-      theme: ThemeData(
-        useMaterial3: true,
-        primarySwatch: Colors.lightBlue,
-        primaryColor: const Color(0xFF81D4FA),
-        scaffoldBackgroundColor: const Color(0xFFF0F9FF),
-        brightness: Brightness.light,
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
 
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF81D4FA),
-          foregroundColor: Colors.white,
-          elevation: 0,
-        ),
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      // Listen to the Firebase Auth session
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, authSnapshot) {
+        
+        // 1. If not logged in, show the Login Screen
+        if (!authSnapshot.hasData) {
+          return const LoginScreen();
+        }
 
-        floatingActionButtonTheme: const FloatingActionButtonThemeData(
-          backgroundColor: Color(0xFF81D4FA),
-        ),
+        // 2. If logged in, fetch the user profile from Firestore
+        return StreamBuilder<DocumentSnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('users')
+              .doc(authSnapshot.data!.uid)
+              .snapshots(),
+          builder: (context, userSnapshot) {
+            if (userSnapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator(color: Colors.indigoAccent)),
+              );
+            }
 
-        // ✅ FIXED: Use CardThemeData instead of CardTheme
-        cardTheme: const CardThemeData(
-          elevation: 6,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(20)),
-          ),
-        ),
-      ),
+            // 3. Handle cases where the User exists in Auth but not in Firestore
+            if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
+              return const LoginScreen(); 
+            }
 
-      // Dark Theme
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        primarySwatch: Colors.lightBlue,
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0A192F),
+            // 4. Map Firestore data to our local AppUser model
+            final userData = AppUser.fromFirestore(
+              userSnapshot.data!.data() as Map<String, dynamic>,
+              userSnapshot.data!.id,
+            );
 
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF0277BD),
-          foregroundColor: Colors.white,
-          elevation: 0,
-        ),
-
-        floatingActionButtonTheme: const FloatingActionButtonThemeData(
-          backgroundColor: Color(0xFF81D4FA),
-        ),
-
-        // ✅ FIXED: Use CardThemeData
-        cardTheme: const CardThemeData(
-          elevation: 6,
-          color: Color(0xFF1E3A5F),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(20)),
-          ),
-        ),
-      ),
-
-      themeMode: ThemeMode.system, // Follows system light/dark mode
-      home: const SplashScreen(),
+            // 5. Success! Pass the user data to the Main UI Wrapper
+            return MainWrapper(user: userData);
+          },
+        );
+      },
     );
   }
 }
